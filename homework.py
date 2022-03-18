@@ -38,6 +38,14 @@ class PracticumException(Exception):
 
 
 def check_tokens():
+    """
+    Проверка доступности переменных окружения.
+    Проверяет доступность переменных окружения,
+    которые необходимы для работы программы.
+    Если отсутствует хотя бы одна переменная окружения —
+    функция должна вернуть False, иначе — True.
+    :return:
+    """
     if PRACTICUM_TOKEN is None or \
             TELEGRAM_TOKEN is None or \
             TELEGRAM_CHAT_ID is None:
@@ -46,6 +54,11 @@ def check_tokens():
 
 
 def timeout_and_logging(message: str = None, level_error=logging.error):
+    """
+    Таймаут увеличивающийся в 2 раза и лог.
+    Таймаут между, после ошибки увеличивающийся в 2 раза после каждой
+    ошибки.
+    """
     if message:
         level_error(message)  # Запись в лог
     global time_sleep_error
@@ -60,6 +73,15 @@ def timeout_and_logging(message: str = None, level_error=logging.error):
 
 
 def parse_status(homework: dict) -> str:
+    """
+    Извлекает из информации о конкретной домашней работе статус этой работы.
+    В качестве параметра функция получает только один элемент
+    из списка домашних работ. В случае успеха, функция возвращает
+    подготовленную для отправки в Telegram строку,
+    содержащую один из вердиктов словаря HOMEWORK_STATUSES.
+    :param homework: Задание
+    :return: Результат выполнения домашней работы
+    """
     logging.debug(f"Парсим домашнее задание: {homework}")
     homework_name = homework['homework_name']
     homework_status = homework['status']
@@ -74,6 +96,15 @@ def parse_status(homework: dict) -> str:
 
 
 def get_api_answer(current_timestamp: int) -> list:
+    """
+    Получение списка домашних работы от заданного времени.
+    Делает запрос к единственному эндпоинту API-сервиса.
+    В качестве параметра функция получает временную метку.
+    В случае успешного запроса должна вернуть ответ API, преобразовав его
+    из формата JSON к типам данных Python.
+    :param current_timestamp: Время в формате timestamp
+    :return: ответ API
+    """
     logging.info("Получение ответа от сервера")
     try:
         homework_statuses = requests.get(
@@ -107,6 +138,15 @@ def get_api_answer(current_timestamp: int) -> list:
 
 
 def check_response(response: list) -> list:
+    """
+    Проверяет ответ API на корректность.
+    В качестве параметра функция получает
+    ответ API, приведенный к типам данных Python. Если ответ API соответствует
+    ожиданиям, то функция должна вернуть список домашних работ
+    (он может быть и пустым), доступный в ответе API по ключу 'homeworks'
+    :param response: ответ API
+    :return: Список домашних работ JSON
+    """
     logging.debug("Проверка ответа API на корректность")
     if 'error' in response:
         if 'error' in response['error']:
@@ -129,6 +169,12 @@ def check_response(response: list) -> list:
 
 
 def send_message(bot, message: str):
+    """
+    Отправка сообщения в телеграм.
+    :param bot: Экземпляр бота телеграм
+    :param message: Сообщение
+    :return: Результат отправки сообщения
+    """
     log = message.replace('\n', '')
     logging.info(f"Отправка сообщения в телеграм: {log}")
     try:
@@ -145,6 +191,17 @@ def send_message(bot, message: str):
 
 
 def main():
+    """
+    В ней описана основная логика работы программы.
+    Все остальные функции должны запускаться из неё.
+    Последовательность действий должна быть примерно такой:
+        Сделать запрос к API.
+        Проверить ответ.
+        Если есть обновления — получить статус работы из обновления и
+            отправить сообщение в Telegram.
+        Подождать некоторое время и сделать новый запрос.
+    :return:
+    """
     if not check_tokens():
         logging.critical("Нет переменных окружения")
         return 0
