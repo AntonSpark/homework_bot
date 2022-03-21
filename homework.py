@@ -91,8 +91,9 @@ def check_response(response: list):
         raise exceptions.HomeworkListError(exceptions.HOMEWORK_LIST_ERROR)
     return response['homeworks']
 
-#я разделил на два метода,
+# я разделил на два метода,
 # по тому что не очень понимаю как прописать в одном
+
 def check_response_status(homework: dict):
     """Дополнительная валидация ответов API."""
     if not isinstance(homework, dict):
