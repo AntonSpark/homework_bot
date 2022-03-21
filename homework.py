@@ -72,13 +72,15 @@ def get_api_answer(current_timestamp):
     timestamp = current_timestamp or int(time.time())
     params = {"from_date": timestamp}
     try:
-        response = requests.get(ENDPOINT, headers=HEADERS, params=params)
+        homework_statuses = requests.get(
+            ENDPOINT, headers=HEADERS, params=params
+        )
     except Exception as error:
         error = "Бот не получил ответ API."
         logging.error(error)
-    if response != HTTPStatus.OK:
+    if homework_statuses.status_code != HTTPStatus.OK:
         raise exceptions.ServerError(exceptions.SERVER_PROBLEMS)
-    return response.json()
+    return homework_statuses.json()
 
 
 def check_response(response: list):
