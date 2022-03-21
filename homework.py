@@ -94,6 +94,7 @@ def check_response(response: list):
 # я разделил на два метода,
 # по тому что не очень понимаю как прописать в одном
 
+
 def check_response_status(homework: dict):
     """Дополнительная валидация ответов API."""
     if not isinstance(homework, dict):
