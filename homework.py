@@ -3,12 +3,14 @@ import os
 import time
 import sys
 
+import json
 import requests
 import telegram
-from http import HTTPStatus
 from dotenv import load_dotenv
+from http import HTTPStatus
 
 import exceptions
+
 
 load_dotenv()
 
@@ -53,26 +55,30 @@ logger.addHandler(handler)
 
 def send_message(bot, message):
     """Отправка сообщения ботом в чат."""
+    logger.info(f'Отправка {message}')
     try:
-        message = bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
-        logger.info('Отправка {message} для {TELEGRAM_CHAT_ID}')
-    except telegram.error.TelegramError as sending_error:
-        logging.error(exceptions.MessageError.format(error=sending_error))
-    return message
+        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+    except telegram.error.TelegramError as error:
+        logger.error(f'Возникла ошибка Телеграм: {error.message}')
+        raise telegram.error.TelegramError(f'Ошибка при отправке: {message}')
+    except json.decoder.JSONDecodeError:
+        raise telegram.error.TelegramError(
+            f'Ошибка разбора ответа при отправке: {message}'
+        )
 
 
 def get_api_answer(current_timestamp):
     """делает запрос к серверу."""
     timestamp = current_timestamp or int(time.time())
-    params = {'from_date': timestamp}
-    homework_statuses = requests.get(
-        ENDPOINT,
-        params=params,
-        headers=HEADERS,
-    )
-    if homework_statuses.status_code != HTTPStatus.OK:
+    params = {"from_date": timestamp}
+    try:
+        response = requests.get(ENDPOINT, headers=HEADERS, params=params)
+    except Exception as error:
+        error = "Бот не получил ответ API."
+        logging.error(error)
+    if response != HTTPStatus.OK:
         raise exceptions.ServerError(exceptions.SERVER_PROBLEMS)
-    return homework_statuses.json()
+    return response.json()
 
 
 def check_response(response: list):
@@ -85,7 +91,8 @@ def check_response(response: list):
         raise exceptions.HomeworkListError(exceptions.HOMEWORK_LIST_ERROR)
     return response['homeworks']
 
-
+#я разделил на два метода,
+# по тому что не очень понимаю как прописать в одном
 def check_response_status(homework: dict):
     """Дополнительная валидация ответов API."""
     if not isinstance(homework, dict):
@@ -101,6 +108,8 @@ def parse_status(homework: dict):
     check_response_status(homework)
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')
+    if homework_status not in HOMEWORK_STATUSES:
+        raise KeyError(f'Неизвестный статус {homework_status}')
     verdict = HOMEWORK_STATUSES.get(homework_status)
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
@@ -122,10 +131,12 @@ def main():
             current_timestamp = api_answer.get(
                 'current_date')
             result = check_response(api_answer)
-            if result == []:
-                logger.debug('статус не изменился')
+            if result:
+                print('Задания обнаружены')
+            else:
+                print('Задания не обнаружены')
             for homework in result:
-                parse_status_result = parse_status(homework)
+                parse_status_result = parse_status(homework[0])
                 send_message(bot, parse_status_result)
             check_previous_error = ""
         except Exception as error:
@@ -133,9 +144,6 @@ def main():
             logger.exception(message)
             if check_previous_error != error:
                 check_previous_error = error
-                bot.send_message(
-                    chat_id=TELEGRAM_CHAT_ID, text=message
-                )
         time.sleep(RETRY_TIME)
 
 

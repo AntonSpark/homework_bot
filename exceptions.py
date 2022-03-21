@@ -1,5 +1,3 @@
-from logging import error
-
 MESSAGE_ERROR = 'Сообщение не отправлено'
 HOMEWORK_LIST_ERROR = 'Данные не в формате list'
 HOMEWORK_DICT_ERROR = 'Данные не в формате dict}'
