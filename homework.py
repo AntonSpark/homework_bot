@@ -65,7 +65,7 @@ def get_api_answer(current_timestamp):
         logger.error(f'Ошибка при запросе {error}')
         raise exceptions.ResponseError(
             f'Ошибка при запросе к API Яндекс.Домашка: {error}'
-        ) 
+        )
 
 
 def check_response(response):
