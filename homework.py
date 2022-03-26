@@ -59,7 +59,7 @@ def get_api_answer(current_timestamp):
             ENDPOINT,
             headers=HEADERS,
             params=params
-            )
+        )
         if response.status_code != HTTPStatus.OK:
             raise exceptions.ResponseError('Код ответа отличается от 200')
     except exceptions.ResponseError as error:
@@ -68,8 +68,7 @@ def get_api_answer(current_timestamp):
         raise Exception('Ошибочный запрос')
     logger.info('Сервер работает')
     return response.json()
-    
-
+ 
 
 def check_response(response):
     """Валидация ответов API."""
