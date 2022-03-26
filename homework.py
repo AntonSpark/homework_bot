@@ -7,6 +7,7 @@ from http import HTTPStatus
 import requests
 import telegram
 from dotenv import load_dotenv
+from telegram import Bot
 
 import exceptions
 
@@ -54,37 +55,41 @@ def get_api_answer(current_timestamp):
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
     try:
-        logger.info(
-            f'Отправлен запрос к API Яндекс.Домашки с параметрами: {params}'
-        )
-        response = requests.get(ENDPOINT, headers=HEADERS, params=params)
+        response = requests.get(
+            ENDPOINT,
+            headers=HEADERS,
+            params=params
+            )
         if response.status_code != HTTPStatus.OK:
             raise exceptions.ResponseError('Код ответа отличается от 200')
-        return response.json()
-    except Exception as error:
-        logger.error(f'Ошибка при запросе {error}')
-        raise exceptions.ResponseError(
-            f'Ошибка при запросе к API Яндекс.Домашка: {error}'
-        )
+    except exceptions.ResponseError as error:
+        raise error
+    except Exception:
+        raise Exception('Ошибочный запрос')
+    logger.info('Сервер работает')
+    return response.json()
+    
 
 
 def check_response(response):
     """Валидация ответов API."""
-    try:
-        homework = response["homeworks"]
-    except KeyError as error:
-        logger.error(f"Отсутствие ожидаемых ключей в ответе API: {error}")
-        raise KeyError("Отсутствие ожидаемых ключей в ответе API:")
-    if not isinstance(response["homeworks"], list):
-        raise TypeError("Неверный тип ответа API")
-    return homework
+    if not isinstance(response, dict):
+        raise TypeError('ответ API не формата dict')
+    if "homeworks" not in response:
+        raise KeyError('В ответе отсутствует ключ "homeworks".')
+    if "current_date" not in response:
+        raise KeyError('В ответе отсутствует ключ "current_date".')
+    chek_resp = response['homeworks']
+    if not isinstance(chek_resp, list):
+        raise TypeError('ответ API не формата list')
+    return chek_resp
 
 
 def parse_status(homework: dict):
     """Извлекает статус запрошенной работы."""
-    if ("homework_name") not in homework:
+    if "homework_name" not in homework:
         raise KeyError("Отсутствует ключ homework_name в ответе API")
-    if ("status") not in homework:
+    if "status" not in homework:
         raise KeyError("Отсутствует ключ status в ответе API")
     homework_name = homework.get("homework_name")
     homework_status = homework.get("status")
@@ -102,26 +107,21 @@ def check_tokens():
 
 def main():
     """Основная логика работы бота."""
-    logger.debug('Запуск бота')
-    bot = telegram.Bot(token=TELEGRAM_TOKEN)
-
+    if check_tokens() is False:
+        raise KeyError('Отсутствуют обязательные переменные окружения')
+    bot = Bot(token=TELEGRAM_TOKEN)
+    current_timestamp = int(time.time())
     while True:
         try:
-            current_timestamp = int(time.time())
-            api_answer = get_api_answer(current_timestamp)
-            current_timestamp = api_answer.get(
-                'current_date')
-            result = check_response(api_answer)
-            if result:
-                print('Задания обнаружены')
-            else:
-                print('Задания не обнаружены')
-            for homework in result:
-                parse_status_result = parse_status(homework[0])
-                send_message(bot, parse_status_result)
+            response = get_api_answer(current_timestamp)
+            homeworks = check_response(response)
+            for homework in homeworks:
+                message = parse_status(homework)
+                send_message(bot, message)
+            current_timestamp = response.get('current_date')
+            time.sleep(RETRY_TIME)
         except Exception as error:
-            message = f'Бот столкнулся с ошибкой: {error}'
-            logger.exception(message)
+            message = f'Сбой в работе программы: {error}'
             send_message(bot, message)
             time.sleep(RETRY_TIME)
 
