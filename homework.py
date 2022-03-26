@@ -68,7 +68,7 @@ def get_api_answer(current_timestamp):
         raise Exception('Ошибочный запрос')
     logger.info('Сервер работает')
     return response.json()
- 
+
 
 def check_response(response):
     """Валидация ответов API."""
