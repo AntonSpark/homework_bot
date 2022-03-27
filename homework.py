@@ -64,8 +64,10 @@ def get_api_answer(current_timestamp):
             raise exceptions.ResponseError('Код ответа отличается от 200')
     except exceptions.ResponseError as error:
         raise error
-    except Exception:
-        raise Exception('Ошибочный запрос')
+    except exceptions.ParseStatusError:
+        raise exceptions.ParseStatusError('не известный статус')
+    except exceptions.ServerError:
+        raise exceptions.ServerError('Ошибка подключения к серверу.')
     logger.info('Сервер работает')
     return response.json()
 
@@ -106,7 +108,7 @@ def check_tokens():
 
 def main():
     """Основная логика работы бота."""
-    if check_tokens() is False:
+    if not check_tokens():
         raise KeyError('Отсутствуют обязательные переменные окружения')
     bot = Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
@@ -114,8 +116,8 @@ def main():
         try:
             response = get_api_answer(current_timestamp)
             homeworks = check_response(response)
-            for homework in homeworks:
-                message = parse_status(homework)
+            if homeworks:
+                message = parse_status(homeworks[0])
                 send_message(bot, message)
             current_timestamp = response.get('current_date')
             time.sleep(RETRY_TIME)
