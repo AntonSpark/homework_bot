@@ -74,10 +74,10 @@ def get_api_answer(current_timestamp):
         logger.error('Yandex URL недоступен')
         raise RequestException('Yandex URL недоступен')
     try:
-         homework_statuses_json = response.json()
-    except json.JSONDecodeError: 
-        raise TypeError("Ответ от сервера должен быть в формате JSON!") 
-    logging.info("Получен ответ от сервера") 
+        homework_statuses_json = response.json()
+    except json.JSONDecodeError:
+        raise TypeError("Ответ от сервера должен быть в формате JSON!")
+    logging.info("Получен ответ от сервера")
     return homework_statuses_json
 
 
