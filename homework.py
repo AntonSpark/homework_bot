@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import sys
@@ -7,6 +8,7 @@ from http import HTTPStatus
 import requests
 import telegram
 from dotenv import load_dotenv
+from requests import RequestException
 from telegram import Bot
 
 import exceptions
@@ -68,8 +70,15 @@ def get_api_answer(current_timestamp):
         raise exceptions.ParseStatusError('не известный статус')
     except exceptions.ServerError:
         raise exceptions.ServerError('Ошибка подключения к серверу.')
-    logger.info('Сервер работает')
-    return response.json()
+    except RequestException:
+        logger.error('Yandex URL недоступен')
+        raise RequestException('Yandex URL недоступен')
+    try:
+         homework_statuses_json = response.json()
+    except json.JSONDecodeError: 
+        raise TypeError("Ответ от сервера должен быть в формате JSON!") 
+    logging.info("Получен ответ от сервера") 
+    return homework_statuses_json
 
 
 def check_response(response):
