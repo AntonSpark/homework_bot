@@ -66,10 +66,6 @@ def get_api_answer(current_timestamp):
             raise exceptions.ResponseError('Код ответа отличается от 200')
     except exceptions.ResponseError as error:
         raise error
-    except exceptions.ParseStatusError:
-        raise exceptions.ParseStatusError('не известный статус')
-    except exceptions.ServerError:
-        raise exceptions.ServerError('Ошибка подключения к серверу.')
     except RequestException:
         logger.error('Yandex URL недоступен')
         raise RequestException('Yandex URL недоступен')
@@ -77,7 +73,7 @@ def get_api_answer(current_timestamp):
         homework_statuses_json = response.json()
     except json.JSONDecodeError:
         raise TypeError("Ответ от сервера должен быть в формате JSON!")
-    logging.info("Получен ответ от сервера")
+    logger.info("Получен ответ от сервера")
     return homework_statuses_json
 
 
